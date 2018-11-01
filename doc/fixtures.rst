@@ -224,19 +224,19 @@ In some cases, you may want to use a certain fixture but don't need its return v
 
 .. code-block:: python
 
-    @slash.fixture()
-    def used_fixture1():
-        """do something"""
-        pass
-    
-    @slash.fixture()
-    def used_fixture2():
-        """do another thing"""
-        pass
-    
-    @slash.use_fixtures(["used_fixture1, used_fixture2"])
-    def test_something():
-        pass
+	@slash.fixture()
+	def used_fixture1():
+	"""do something"""
+	    pass
+
+	@slash.fixture()
+	def used_fixture2():
+	"""do another thing"""
+	    pass
+
+	@slash.use_fixtures(["used_fixture1, used_fixture2"])
+	def test_something():
+	    pass
 
 
 Aliasing Fixtures
