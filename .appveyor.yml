@@ -6,12 +6,10 @@ environment:
     # Python 3.0-3.3 have reached EOL
 
     - PYTHON: "C:\\Python27"
-    - PYTHON: "C:\\Python34"
     - PYTHON: "C:\\Python35"
     - PYTHON: "C:\\Python36"
     - PYTHON: "C:\\Python37"
     - PYTHON: "C:\\Python27-x64"
-    - PYTHON: "C:\\Python34-x64"
     - PYTHON: "C:\\Python35-x64"
     - PYTHON: "C:\\Python36-x64"
     - PYTHON: "C:\\Python37-x64"
@@ -26,6 +24,3 @@ build: off
 test_script:
   # run tests
   - "pytest"
-
-  # uplad coverage reports
-  - "codecov"
