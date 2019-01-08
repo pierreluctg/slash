@@ -32,7 +32,7 @@ jobs:
 
   - script: |
       pytest tests
-    displayName: 'pytest -k "not test_warning_ignored"'
+    displayName: 'pytest'
 
   - task: PublishTestResults@2
     inputs:
