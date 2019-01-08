@@ -2,6 +2,7 @@ import collections
 import sys
 from contextlib import contextmanager
 
+from slash import ctx
 import logbook
 from orderedset import OrderedSet
 
@@ -30,6 +31,7 @@ class FixtureStore(object):
         self._fixtures_by_id = {}
         self._fixtures_by_fixture_info = {}
         self._active_fixtures_by_scope = collections.defaultdict(OrderedDict)
+        self._active_fixture_dependencies = {} # maps fixture id to the frozenset of (param_id, variation index)
         self._computing = set()
         self._all_needed_parametrization_ids_by_fixture_id = {}
         self._known_fixture_ids = collections.defaultdict(dict) # maps fixture ids to known combinations
@@ -55,10 +57,14 @@ class FixtureStore(object):
                 yield f
 
     def call_with_fixtures(self, test_func, namespace, trigger_test_start=False, trigger_test_end=False):
-
         if not nofixtures.is_marked(test_func):
             fixture_names = self.get_required_fixture_names(test_func)
             kwargs = self.get_fixture_dict(fixture_names, namespace)
+            used_fixtures_decorator_names = getattr(test_func, '__extrafixtures__', None)
+            if used_fixtures_decorator_names is not None:
+                used_fixture_names_only = set(used_fixtures_decorator_names) - set(fixture_names)
+                for name in used_fixture_names_only:
+                    self.get_fixture_value(namespace.get_fixture_by_name(name))
         else:
             kwargs = {}
 
@@ -66,13 +72,13 @@ class FixtureStore(object):
             for fixture in self.iter_active_fixtures():
                 fixture.call_test_start()
 
-        returned = test_func(**kwargs)
-
-        if trigger_test_end:
-            for fixture in self.iter_active_fixtures():
-                fixture.call_test_end()
-
-        return returned
+        try:
+            return test_func(**kwargs)
+        finally:
+            if trigger_test_end:
+                for fixture in self.iter_active_fixtures():
+                    with handling_exceptions(swallow=True):
+                        fixture.call_test_end()
 
     def get_required_fixture_names(self, test_func):
         """Returns a list of fixture names needed by test_func.
@@ -289,7 +295,6 @@ class FixtureStore(object):
         return value
 
     def iter_parametrization_variations(self, fixture_ids=(), funcs=(), methods=()):
-
         if self._unresolved_fixture_ids:
             raise UnresolvedFixtureStore()
 
@@ -314,11 +319,14 @@ class FixtureStore(object):
         if fixture.info.id in self._computing:
             raise CyclicFixtureDependency(
                 'Fixture {!r} is a part of a dependency cycle!'.format(name))
-
         active_fixture = self.get_active_fixture(fixture)
-
         if active_fixture is not None:
-            return active_fixture.value
+            if self._is_active_fixture_valid(fixture):
+                _logger.trace("Fixture {} did not change", fixture)
+                return active_fixture.value
+            else:
+                _logger.trace("Fixture {} no longer valid. Recomputing", fixture)
+                self._deactivate_fixture(active_fixture.fixture)
 
         self._computing.add(fixture.info.id)
         try:
@@ -331,6 +339,24 @@ class FixtureStore(object):
             self._computing.discard(fixture.info.id)
 
         return fixture_value
+
+    def _is_active_fixture_valid(self, fixture):
+        assert fixture.info.id in self._active_fixture_dependencies, "Fixture dependencies not updated"
+        new_dependencies = self._compute_fixture_dependencies(fixture)
+        return new_dependencies.issubset(self._active_fixture_dependencies[fixture.info.id])
+
+    def _compute_fixture_dependencies(self, fixture):
+
+        param_indices = self._compute_all_needed_parametrization_ids(fixture)
+        if not param_indices:
+            return frozenset()
+
+        assert ctx.session is not None, "Dependency computation requires an active session"
+        variation = ctx.session.variations.get_current_variation()
+        assert variation is not None, "Dependency computation requires current variation"
+
+        return frozenset((param_id, variation.param_value_indices[param_id])
+                         for param_id in self._compute_all_needed_parametrization_ids(fixture))
 
     def _call_fixture(self, fixture, relative_name):
         assert relative_name
@@ -350,7 +376,9 @@ class FixtureStore(object):
 
 
         assert fixture.info.id not in self._active_fixtures_by_scope[fixture.info.scope]
+        _logger.trace("Activating fixture {}...", fixture)
         self._active_fixtures_by_scope[fixture.info.scope][fixture.info.id] = active_fixture
+        self._active_fixture_dependencies[fixture.info.id] = self._compute_fixture_dependencies(fixture)
         prev_context_fixture = slash_context.fixture
         slash_context.fixture = active_fixture
         try:
@@ -363,6 +391,7 @@ class FixtureStore(object):
     def _deactivate_fixture(self, fixture):
         # in most cases it will be the last active fixture in its scope
         active = self._active_fixtures_by_scope[fixture.info.scope].pop(fixture.info.id, None)
+        self._active_fixture_dependencies.pop(fixture.info.id, None)
         if active is not None:
             active.do_cleanups()
 

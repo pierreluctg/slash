@@ -92,6 +92,17 @@ def test_test_end_called_for_interrupted_test(interrupted_suite, interrupted_tes
     assert result.test_metadata.id in ended
 
 
+def test_ayalas(interrupted_suite, interrupted_test, interrupted_index, config_override, tmpdir):
+    config_override('log.format', 'file: {record.message}')
+    config_override('log.console_format', 'console: {record.message}')
+    config_override('log.root', str(tmpdir))
+    callback = Checkpoint()
+    slash.hooks.log_file_closed.register(callback) # pylint: disable=no-member
+    result = interrupted_suite.run(expect_interruption=True)
+    num_closed_log_files = interrupted_index + 2 # One for each test that run (the index is zero based) + session log
+    assert callback.called_count == num_closed_log_files
+
+
 def test_session_interruption_in_start(suite, suite_test, session_interrupt):
 
     @suite.slashconf.append_body
@@ -176,6 +187,29 @@ def test_test_interrupt_hook_exception(suite_builder):
     [res] = suite_builder.build().run().assert_results(1)
     assert res.is_interrupted()
 
+
+@pytest.mark.parametrize('hook_name', ['before_session_cleanup', 'session_start', 'before_session_start'])
+def test_session_scope_interruption(hook_name, suite, checkpoint):
+
+    @gossip.register('slash.{}'.format(hook_name))
+    def hook(*_, **__):
+        raise KeyboardInterrupt()
+
+    @gossip.register('slash.session_interrupt')
+    def interrupt(*_, **__):
+        checkpoint()
+
+    if 'session_start' in hook_name:
+        for test in suite:
+            test.expect_deselect()
+    else:
+        assert hook_name == 'before_session_cleanup'
+        suite[-1].expect_interruption()
+
+    results = suite.run(expect_interruption=True)
+
+    assert results.session.results.global_result.is_interrupted()
+    assert checkpoint.called
 
 
 @pytest.fixture

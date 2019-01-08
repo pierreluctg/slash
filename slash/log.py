@@ -2,15 +2,15 @@ import datetime
 import numbers
 import os
 import sys
-from contextlib import contextmanager, closing
+from contextlib import contextmanager
 
 import logbook  # pylint: disable=F0401
 import logbook.more
-from vintage import warn_deprecation
 
 from . import context
 from ._compat import ExitStack
 from .conf import config
+from .utils import add_error
 from .utils.path import ensure_containing_directory
 from .warnings import WarnHandler
 from .exceptions import InvalidConfiguraion
@@ -22,6 +22,14 @@ _logger = logbook.Logger(__name__)
 _custom_colors = {}
 filtered_channels = {'slash.runner', 'slash.loader', 'slash.core.cleanup_manager', 'slash.core.scope_manager', \
                       'slash.exception_handling', 'slash.core.fixtures.fixture_store'}
+
+class ErrorHandler(logbook.handlers.Handler):
+    def __init__(self):
+        super(ErrorHandler, self).__init__(level=logbook.ERROR, bubble=True)
+
+    def emit(self, record):
+        if record.extra.get('capture', True):
+            add_error(record.message, exc_info=record.exc_info)
 
 class _NormalizedObject(object):
     def __init__(self, obj):
@@ -186,10 +194,11 @@ class SessionLogging(object):
                 stack.enter_context(extra_handler.applicationbound())
             if config.root.log.unified_session_log and self.session_log_handler is not None:
                 stack.enter_context(_make_bubbling_handler(self.session_log_handler))
+            if config.root.run.capture.error_logs_as_errors:
+                stack.enter_context(ErrorHandler().applicationbound())
 
             path = handler.stream.name if isinstance(handler, logbook.FileHandler) else None
             yield handler, path
-
 
     def _should_delete_log(self, result):
         return (not config.root.log.cleanup.keep_failed) or \
@@ -199,12 +208,7 @@ class SessionLogging(object):
     @contextmanager
     def _get_error_logging_context(self):
         with ExitStack() as stack:
-            path = config.root.log.errors_subpath
-            if path:
-                warn_deprecation('log.errors_subpath configuration is deprecated since 1.5.0. '
-                                 'Please use log.highlights_subpath instead')
-            else:
-                path = config.root.log.highlights_subpath
+            path = config.root.log.highlights_subpath
             def _error_added_filter(record, handler): # pylint: disable=unused-argument
                 return record.extra.get('highlight')
 
@@ -260,19 +264,24 @@ class SessionLogging(object):
                 ensure_containing_directory(log_path)
                 if symlink:
                     self._try_create_symlink(log_path, symlink)
-                with closing(self._create_log_file_handler(log_path, bubble=bubble, use_compression=use_compression, \
-                                                           use_rotation=use_rotation, filter=filter)) as handler:
+                handler = self._create_log_file_handler(log_path, bubble=bubble, use_compression=use_compression,
+                                                        use_rotation=use_rotation, filter=filter)
+                try:
                     self._log_path_to_handler[log_path] = handler
                     self._set_formatting(handler, config.root.log.format)
-                    yield handler
-                self._log_path_to_handler[log_path] = None
-                hooks.log_file_closed(path=log_path, result=result)  # pylint: disable=no-member
-                if config.root.log.cleanup.enabled and self._should_delete_log(result):
+                    with handling_exceptions():
+                        yield handler
+                finally:
+                    handler.close()
+                    self._log_path_to_handler[log_path] = None
                     with handling_exceptions(swallow=True):
-                        os.remove(log_path)
-                        dir_path = os.path.dirname(log_path)
-                        if not os.listdir(dir_path) and dir_path != self._normalize_path(config.root.log.root):
-                            os.rmdir(dir_path)
+                        hooks.log_file_closed(path=log_path, result=result)  # pylint: disable=no-member
+                    if config.root.log.cleanup.enabled and self._should_delete_log(result):
+                        with handling_exceptions(swallow=True):
+                            os.remove(log_path)
+                            dir_path = os.path.dirname(log_path)
+                            if not os.listdir(dir_path) and dir_path != self._normalize_path(config.root.log.root):
+                                os.rmdir(dir_path)
 
 
     def _normalize_path(self, p):

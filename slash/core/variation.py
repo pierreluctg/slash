@@ -1,10 +1,23 @@
 from numbers import Number
 import string
-
+import json
+import logbook
 from .._compat import string_types
 
 _PRINTABLE_TYPES = (Number,) + string_types
 _PRINTABLE_CHARS = set(string.ascii_letters) | set(string.digits) | set("-_")
+
+_logger = logbook.Logger(__name__)
+
+class Variations(object):
+    _current_variation = None
+
+    def set_current_variation(self, variation):
+        assert variation is None or self._current_variation is None
+        self._current_variation = variation
+
+    def get_current_variation(self):
+        return self._current_variation
 
 
 class Variation(object):
@@ -55,6 +68,12 @@ class Variation(object):
 
     def get_param_value(self, param):
         return self._store.get_value(self, param)
+
+    def dump_variation_dict(self):
+        # We re-construct the dictionary in a predictable order, since
+        # it has to be sorted the same way across both parents and children
+        # in parallel mode
+        return json.dumps({k: v for k, v in sorted(self.id.items())})
 
     def __eq__(self, other):
         if isinstance(other, Variation):

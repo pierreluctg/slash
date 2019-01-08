@@ -69,7 +69,8 @@ class Result(object):
             try:
                 self.__dict__[key] = unpickle(value)
             except TypeError:
-                _logger.error('Error when deserialize reult, skipping this value. key = {}', key)
+                _logger.error('Error when deserialize reult, skipping this value. key = {}', key,
+                              extra={'capture': False})
         for failure in self._failures:
             self.add_failure(failure, append=False)
         for error in self._errors:
@@ -151,7 +152,7 @@ class Result(object):
         return self._started
 
     def is_not_run(self):
-        return not self._started
+        return not self.is_started() and not self.has_errors_or_failures()
 
     def mark_started(self):
         self._started = True
@@ -177,12 +178,11 @@ class Result(object):
         return self.is_started() and self.is_skip()
 
     def is_success(self, allow_skips=False):
-        if not self.is_started():
+        if self._errors or self._failures or self._interrupted:
+            return False
+        if self._skips:
             return allow_skips
-        returned = not self._errors and not self._failures and not self._interrupted
-        if not allow_skips:
-            returned &= not self._skips
-        return returned
+        return self.is_started()
 
     def is_success_finished(self):
         return self.is_success() and self.is_finished()
@@ -238,7 +238,7 @@ class Result(object):
             error.forget_exc_info()
             return error
         except Exception:
-            _logger.error("Failed to add error to result", exc_info=True)
+            _logger.error("Failed to add error to result", exc_info=True, extra={'capture': False})
             raise
 
     def add_skip(self, reason, append=True):
@@ -301,7 +301,7 @@ class GlobalResult(Result):
             return False
         if self._session_results is None:
             return True
-        if self._session_results.session.has_children() and self._session_results.session.parallel_manager.server.worker_session_error_reported:
+        if self._session_results.session.has_children() and self._session_results.session.parallel_manager.server.worker_error_reported:
             return False
         return all(result.is_success(allow_skips=allow_skips) for result in self._session_results.iter_test_results())
 
@@ -419,7 +419,9 @@ class SessionResults(object):
         return itertools.chain(self.iter_test_results(), [self.global_result])
 
     def create_result(self, test):
-        assert test.__slash__.id not in self._results_dict
+        if test.__slash__.id in self._results_dict:
+            raise exceptions.SlashInternalError("{} shouldn't appear in results dict before adding its result".format(test.__slash__.id))
+
         returned = Result(test.__slash__)
         self._results_dict[test.__slash__.id] = returned
         return returned
@@ -430,6 +432,11 @@ class SessionResults(object):
         if test.__slash__ is None:
             raise LookupError("Could not find result for {}".format(test))
         return self._results_dict[test.__slash__.id]
+
+    def safe_get_result(self, test):
+        if test.__slash__ is None:
+            return None
+        return self._results_dict.get(test.__slash__.id)
 
     def __getitem__(self, test):
         if isinstance(test, Number):

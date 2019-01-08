@@ -47,6 +47,7 @@ config = Config({
                                                     increase_doc='Make console less verbose (can be specified multiple times)'),
         "core_log_level": logbook.WARNING // Doc("Minimal level of slash log messages to show"),
         "color_console": None // Cmdline(on='--force-color', off='--no-color'),
+        "repr_blacklisted_types": [] // Doc("Blacklisted types that should not be repred in traceback"),
         "traceback_variables": False // Doc("Logs values of variables in traceback frames for added errors"),
         "console_traceback_level": 2 // Doc("Detail level of tracebacks") // Cmdline(arg="--tb"),
         "truncate_console_lines": True // Doc("truncate long log lines on the console") // Cmdline(arg='--truncate-console-lines', metavar='yes/no'),
@@ -54,7 +55,6 @@ config = Config({
         "root": None // Doc("Root directory for logs") // Cmdline(arg="-l", metavar="DIR"),
         "subpath": "{context.session.id}/{context.test_id}/debug.log" // Doc("Path to write logs to under the root"),
         "session_subpath": "{context.session.id}/session.log",
-        "errors_subpath": None // Doc("Depreacted - Use 'highlights_subpath' config instead"),
         "highlights_subpath": None // Doc("If set, this path will be used to record highlights (eg. errors added) in the session and/or tests"),
         "last_session_symlink": None // Doc("If set, specifies a symlink path to the last session log file in each run"),
         "last_session_dir_symlink": None // Doc("If set, specifies a symlink path to the last session log directory"),
@@ -93,6 +93,9 @@ config = Config({
         "user_customization_file_path": "~/.slash/slashrc",
         "resume_state_path": "~/.slash/session_states" // Doc("Path to store or load session's resume data"),
         "message_assertion_introspection": True // Doc("When False, failing assertions which have messages attached will not emit introspection info"),
+        "capture": {
+            "error_logs_as_errors": False // Doc("Add errors for error level logs"),
+        },
     },
     "interactive": {
         "expose_g_globals": True // Doc("When False, slash.g won't be added to interactive test namespaces"),
@@ -103,12 +106,20 @@ config = Config({
         "worker_id": None // Doc("Worker_id") // Cmdline(arg='--parallel-worker-id', metavar="WORKER_ID"),
         "server_addr": "localhost" // Doc("Server address") // Cmdline(arg='--parallel-addr', metavar="PARALLEL_SERVER_ADDRESS"),
         "server_port": 0 // Doc("Server port") // Cmdline(arg='--parallel-port', metavar="PARALLEL_SERVER_PORT"),
+        "keepalive_port": 0 // Doc("Keepalive port") // Cmdline(arg='--keepalive-port', metavar="KEEPALIVE_SERVER_PORT"),
         "parent_session_id": None // Doc("parent session id") // Cmdline(arg='--parallel-parent-session-id', metavar="MASTER_SESSION_ID"),
         "communication_timeout_secs": 60 // Doc("timeout of worker in seconds"),
         "worker_connect_timeout": 10 // Doc("timeout for each worker to connect"),
         "no_request_timeout": 20 // Doc("timeout for server not getting requests"),
         "worker_error_file": "errors-worker" // Doc("worker error filename template"),
         "workers_error_dir": None // Doc("workers error directory") // Cmdline(arg='--workers-error-dir', metavar="WORKERS_ERROR_DIR"),
+    },
+    "resume": {
+        "failed_first": False // Doc("Run failed tests of previous session before all others") // Cmdline(on='--failed-first', metavar="FAILED_FIRST"),
+        "unstarted_first": False // Doc("Run unstarted tests of previous session before all others") // Cmdline(on='--unstarted-first', metavar="UNSTARTED_FIRST"),
+        "failed_only": False // Doc("Run only failed tests of previous session") // Cmdline(on='--failed-only', metavar="FAILED_ONLY"),
+        "unstarted_only": False // Doc("Run only unstarted tests of previous session") // Cmdline(on='--unstarted-only', metavar="UNSTARTED_ONLY"),
+        "state_retention_days": 10 // Doc("Number of days to keep session entries for resuming session")
     },
     "tmux": {
         "enabled": False // Doc("Run inside tmux") // Cmdline(on="--tmux"),

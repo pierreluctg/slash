@@ -19,6 +19,8 @@ from .loader import Loader
 from .log import ConsoleHandler
 from .utils import cli_utils
 from .utils.debug import debug_if_needed
+from .utils.warning_capture import warning_callback_context
+from .warnings import RecordedWarning, capture_all_warnings
 
 _logger = logbook.Logger(__name__)
 inhibit_unhandled_exception_traceback(SlashException)
@@ -40,6 +42,7 @@ class Application(object):
         self._working_directory = None
         self._interrupted = False
         self._exit_code = 0
+        self._prelude_warning_records = []
 
     def set_working_directory(self, path):
         self._working_directory = path
@@ -102,6 +105,7 @@ class Application(object):
         self._exit_stack.__enter__()
         try:
             self._exit_stack.enter_context(self._prelude_logging_context())
+            self._exit_stack.enter_context(self._prelude_warning_context())
             self._exit_stack.enter_context(self._sigterm_context())
             with dessert.rewrite_assertions_context():
                 site.load(working_directory=self._working_directory)
@@ -126,6 +130,7 @@ class Application(object):
 
             self._exit_stack.enter_context(self.session)
             self._emit_prelude_logs()
+            self._emit_prelude_warnings()
             return self
 
         except:
@@ -135,7 +140,10 @@ class Application(object):
 
     def __exit__(self, exc_type, exc_value, exc_tb):
         exc_info = (exc_type, exc_value, exc_tb)
-        debug_if_needed(exc_info)
+        try:
+            debug_if_needed(exc_info)
+        except Exception as e:  # pylint: disable=broad-except
+            _logger.error("Failed to debug_if_needed: {!r}", e, exc_info=True, extra={'capture': False})
         if exc_value is not None:
             self._exit_code = exc_value.code if isinstance(exc_value, SystemExit) else -1
 
@@ -143,7 +151,7 @@ class Application(object):
                 self.get_reporter().report_error_message(str(exc_value))
 
             elif isinstance(exc_value, Exception):
-                _logger.error('Unexpected error occurred', exc_info=exc_info)
+                _logger.error('Unexpected error occurred', exc_info=exc_info, extra={'capture': False})
                 self.get_reporter().report_error_message('Unexpected error: {}'.format(exc_value))
 
             if isinstance(exc_value, exceptions.INTERRUPTION_EXCEPTIONS):
@@ -154,11 +162,25 @@ class Application(object):
         self._exit_stack.__exit__(exc_type, exc_value, exc_tb)
         self._exit_stack = None
         self._reset_parser()
+        trigger_hook.app_quit()  # pylint: disable=no-member
         return True
+
+    def _capture_native_warning(self, message, category, filename, lineno, file=None, line=None): # pylint: disable=unused-argument
+        self._prelude_warning_records.append(RecordedWarning.from_native_warning(message, category, filename, lineno))
 
     def _prelude_logging_context(self):
         self._prelude_log_handler = log.RetainedLogHandler(bubble=True, level=logbook.TRACE)
         return self._prelude_log_handler.applicationbound()
+
+    def _prelude_warning_context(self):
+        capture_all_warnings()
+        return warning_callback_context(self._capture_native_warning)
+
+    def _emit_prelude_warnings(self):
+        if self.session is not None:
+            for warning in self._prelude_warning_records:
+                if not self.session.warnings.warning_should_be_filtered(warning):
+                    self.session.warnings.add(warning)
 
     def _emit_prelude_logs(self):
         self._prelude_log_handler.disable()

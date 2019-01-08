@@ -46,6 +46,7 @@ class SuiteBuilderSuite(object):
 
     def run(self):
         app = slash_run([self.path])
+        assert not app.session.has_internal_errors(), 'Session has internal errors!'
         return SuiteBuilderSuiteResult(app)
 
 
@@ -101,4 +102,12 @@ class AssertAllHelper(object):
             errs = res.get_errors()
             assert len(errs) == 1
             assert errs[0] == error
+        return self.suite_builder_result
+
+    def exception(self, exception_class):
+        assert isinstance(exception_class, type)
+        for res in self._results:
+            errs = res.get_errors()
+            assert len(errs) == 1
+            assert errs[0].exception_type is exception_class
         return self.suite_builder_result

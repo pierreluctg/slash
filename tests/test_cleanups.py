@@ -219,3 +219,48 @@ def test_adding_cleanups_from_test_fixtures_with_specific_scope(suite, suite_tes
     res = suite.run()
     assert res[suite_test].data['fixture_called']
     assert 'fixture_called' not in res.session.results.global_result.data
+
+
+
+def test_get_current_cleanup_phase(suite_builder):
+
+    @suite_builder.first_file.add_code
+    def __code__(): # pylint: disable=unused-variable
+        import slash # pylint: disable=redefined-outer-name,reimported
+
+        def test_something():
+
+            assert not slash.is_in_cleanup()
+            assert slash.get_current_cleanup_phase() is None
+
+            def session_cleanup():
+                assert slash.is_in_cleanup()
+                assert slash.get_current_cleanup_phase() == 'session'
+            slash.add_cleanup(session_cleanup, scope='session')
+
+            def module_cleanup():
+                assert slash.is_in_cleanup()
+                assert slash.get_current_cleanup_phase() == 'module'
+            slash.add_cleanup(module_cleanup, scope='module')
+
+            def regular_cleanup():
+                assert slash.is_in_cleanup()
+                assert slash.get_current_cleanup_phase() == 'test'
+            slash.add_cleanup(regular_cleanup)
+
+    suite_builder.build().run().assert_success(1)
+
+
+def test_add_functools_partial_cleanup(suite_builder):
+    @suite_builder.first_file.add_code
+    def __code__(): # pylint: disable=unused-variable
+        import slash # pylint: disable=redefined-outer-name,reimported
+        import functools
+
+        def cleanup_with_argument(x):
+            pass
+
+        def test_partial_cleanup():
+            slash.add_cleanup(functools.partial(cleanup_with_argument, 5))
+
+    suite_builder.build().run().assert_success(1)
