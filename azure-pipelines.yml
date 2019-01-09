@@ -27,7 +27,7 @@ jobs:
       versionSpec: '$(python.version)'
       architecture: 'x64'
  
-  - script: python -m virtualenv .env
+  - script: python -m pip install --upgrade virtualenv && python -m virtualenv .env
     displayName: Create virtual environment
 
   - script: python -m pip install --upgrade pip && pip install .[testing,doc]
