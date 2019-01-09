@@ -31,7 +31,7 @@ jobs:
     displayName: 'Install dependencies'
 
   - script: |
-      pytest tests
+      py.test --cov=slash --cov-report=html tests
     displayName: 'pytest'
 
   - task: PublishTestResults@2
