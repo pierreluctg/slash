@@ -28,10 +28,12 @@ jobs:
       architecture: 'x64'
    
 
-  - script: python -m pip install --upgrade pip && pip install .[testing,doc]
+  - script: |
+      python -m pip install --upgrade pip && pip install .[testing,doc]
     displayName: 'Install dependencies'
 
-  - script: py.test --cov=slash --cov-report=html tests
+  - script: |
+      py.test --cov=slash --cov-report=html tests
     displayName: 'pytest'
 
   - task: PublishTestResults@2
