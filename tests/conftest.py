@@ -282,8 +282,8 @@ def restore_plugins_on_cleanup(request):
 
 
 @pytest.fixture
-def logs_dir(config_override, tmp_path, relative_symlinks):
-    returned = tmp_path.join('logs')
+def logs_dir(config_override, tmpdir, relative_symlinks):
+    returned = tmpdir.join('logs')
     config_override("log.root", str(returned.join("files")))
     config_override("log.last_session_symlink",
                     str("../links/last-session" if relative_symlinks else returned.join("links", "last-session")))
