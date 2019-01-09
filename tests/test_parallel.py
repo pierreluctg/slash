@@ -2,6 +2,7 @@ import slash
 import os
 import signal
 import sys
+
 from .utils.suite_writer import Suite
 from slash.resuming import get_tests_from_previous_session
 from slash.exceptions import InteractiveParallelNotAllowed, ParallelTimeout
