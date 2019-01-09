@@ -50,7 +50,12 @@ class LocalConfig(object):
 
         while True:
             yield path
-            new_path = os.path.dirname(path)
-            if new_path == path:
+            print(os.path.normcase(path))
+            print(os.path.normcase(os.path.abspath(os.path.sep)))
+            print(os.path.sep)
+            if os.path.normcase(path) == os.path.normcase(os.path.abspath(os.path.sep)):
+                print("Breaking")
                 break
+            new_path = os.path.dirname(path)
+            assert new_path != path
             path = new_path
