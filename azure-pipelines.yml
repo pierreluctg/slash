@@ -33,14 +33,10 @@ jobs:
   - script: pip install --upgrade virtualenv && python -m virtualenv .env
     displayName: Create virtual environment
 
-  - script: |
-      .env/Scripts/activate.bat
-      pip install .[testing,doc]
+  - script: .env/Scripts/activate.bat && pip install .[testing,doc]
     displayName: 'Install dependencies'
 
-  - script: |
-      .env/Scripts/activate.bat
-      py.test --cov=slash --cov-report=html tests
+  - script: .env/Scripts/activate.bat && py.test --cov=slash --cov-report=html tests
     displayName: 'pytest'
 
   - task: PublishTestResults@2
