@@ -1,7 +1,7 @@
 # pylint: disable=unused-argument,redefined-outer-name
 import functools
 import os
-omport sys
+import sys
 
 import logbook
 import brotli
