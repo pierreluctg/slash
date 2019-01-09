@@ -48,9 +48,12 @@ class LocalConfig(object):
         if os.path.isfile(path):
             path = os.path.dirname(path)
 
+        upward_limit = os.path.splitdrive(os.path.normcase(os.path.abspath(os.path.sep)))[1]
+
         while True:
             yield path
-            new_path = os.path.dirname(path)
-            if new_path == path:
+            if os.path.splitdrive(os.path.normcase(path))[1] == upward_limit:
                 break
+            new_path = os.path.dirname(path)
+            assert new_path != path
             path = new_path
