@@ -106,7 +106,6 @@ def test_logs_compression(files_dir, suite, config_override, compression_enabled
     else:
         assert session_log_path.endswith(".log")
 
-@pytest.mark.skipif(sys.platform == 'win32', reason="does not run on windows")
 def test_compressing_to_unified_file(files_dir, suite, config_override):
     config_override("log.compression.enabled", True)
     config_override("log.subpath", slash.config.root.log.session_subpath)
