@@ -73,7 +73,6 @@ def _decompress(input_file_name, use_gzip=True):
         with open(input_file_name, 'rb') as in_f:
             return brotli.decompress(in_f.read()).decode()
 
-@pytest.mark.skipif(sys.platform == 'win32', reason="does not run on windows")
 @pytest.mark.parametrize('compression_enabled', [True, False])
 @pytest.mark.parametrize('compression_method', ['gzip', 'brotli'])
 @pytest.mark.parametrize('use_rotating_raw_file', [True, False])
@@ -107,7 +106,6 @@ def test_logs_compression(files_dir, suite, config_override, compression_enabled
     else:
         assert session_log_path.endswith(".log")
 
-@pytest.mark.skipif(sys.platform == 'win32', reason="does not run on windows")
 def test_compressing_to_unified_file(files_dir, suite, config_override):
     config_override("log.compression.enabled", True)
     config_override("log.subpath", slash.config.root.log.session_subpath)
