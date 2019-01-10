@@ -35,9 +35,3 @@ jobs:
       mkdir d:\temp && py.test --cov=slash --cov-report=html --sw tests
     displayName: 'pytest'
     env: {TMPDIR: 'd:\temp\'}
-
-  - task: PublishTestResults@2
-    inputs:
-      testResultsFiles: '**/test-results.xml'
-      testRunTitle: 'Python $(python.version)'
-    condition: succeededOrFailed()
