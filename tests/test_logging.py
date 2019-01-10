@@ -73,7 +73,6 @@ def _decompress(input_file_name, use_gzip=True):
         with open(input_file_name, 'rb') as in_f:
             return brotli.decompress(in_f.read()).decode()
 
-@pytest.mark.skipif(sys.platform == 'win32', reason="does not run on windows")
 @pytest.mark.parametrize('compression_enabled', [True, False])
 @pytest.mark.parametrize('compression_method', ['gzip', 'brotli'])
 @pytest.mark.parametrize('use_rotating_raw_file', [True, False])
