@@ -14,9 +14,6 @@ import time
 import tempfile
 import pytest
 
-if sys.platform.startswith("win"):
-    pytest.skip("does not run on windows", allow_module_level=True)
-
 @pytest.fixture(scope='module', autouse=True)
 def no_parallel_user_config(request):
     tmpdir = tempfile.mkdtemp()
