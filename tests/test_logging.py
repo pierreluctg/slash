@@ -46,7 +46,7 @@ def test_add_error_for_error_log_level(tmpdir, should_consider_error, config_ove
     assert [res.message for res in result.get_errors()] == expected_error_messages
     assert [rec.message for rec in test_handler.records] == [message, non_capture_message]
 
-@pytest.mark.skipif(sys.platform == 'win32', reason="does not run on windows")
+# @pytest.mark.skipif(sys.platform == 'win32', reason="does not run on windows")
 def test_last_session_symlinks(files_dir, links_dir, session):
 
     test_log_file = files_dir.join(
