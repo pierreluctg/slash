@@ -1,5 +1,5 @@
 language: python
-dist: xenial
+
 sudo: false
 python:
   - "2.7"
@@ -12,7 +12,23 @@ env:
 
 matrix:
   include:
-    - python: "3.6"
+    - os: linux
+      dist: xenial
+      python: 2.7
+    - os: linux
+      dist: xenial
+      python: 3.5
+    - os: linux
+      dist: xenial
+      python: 3.6
+    - os: linux
+      dist: xenial
+      python: 3.7
+    - os: windows
+      python: 3.7
+    - os: linux
+      dist: xenial
+      python: "3.6"
       env: TRAVIS_PYLINT=true
 
 # command to run tests, e.g. python setup.py test
