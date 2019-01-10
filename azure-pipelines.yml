@@ -34,6 +34,7 @@ jobs:
   - script: |
       py.test --cov=slash --cov-report=html --sw tests
     displayName: 'pytest'
+    workingDirectory: 'd:\'
 
   - task: PublishTestResults@2
     inputs:
