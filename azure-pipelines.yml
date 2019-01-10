@@ -32,6 +32,18 @@ jobs:
     displayName: 'Install dependencies'
 
   - script: |
-      mkdir d:\temp && py.test --cov=slash --cov-report=html --sw tests
+      mkdir d:\temp && py.test tests --cov=slash --cov-report=html --cov-report=xml --junitxml=junit/test-results.xml
     displayName: 'pytest'
     env: {TMPDIR: 'd:\temp\'}
+ 
+  - task: PublishTestResults@2
+    condition: succeededOrFailed()
+    inputs:
+      testResultsFiles: '**/test-*.xml'
+      testRunTitle: 'Publish test results for Python $(python.version)'
+  
+  - task: PublishCodeCoverageResults@1
+    inputs:
+      codeCoverageTool: Cobertura
+      summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
+      reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
