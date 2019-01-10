@@ -32,9 +32,9 @@ jobs:
     displayName: 'Install dependencies'
 
   - script: |
-      py.test --cov=slash --cov-report=html --sw tests
+      mkdir d:\temp && py.test --cov=slash --cov-report=html --sw tests
     displayName: 'pytest'
-    env: {TMPDIR: 'd:\temp\'}
+    env: {TMPDIR: d:\temp\}
 
   - task: PublishTestResults@2
     inputs:
