@@ -15,7 +15,7 @@ matrix:
     - python: "3.6"
       env: TRAVIS_PYLINT=true
     - os: windows
-      language: sh
+      language: generic
       python: 3.7
       before_install:
         - choco install python3
