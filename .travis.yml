@@ -15,7 +15,9 @@ matrix:
     - python: "3.6"
       env: TRAVIS_PYLINT=true
     - os : osx
-      python: "3.7"
+      language: generic
+      python: 3.7
+      env: PYTHON=3.7
     - os: windows
       language: sh
       python: 3.7
@@ -31,6 +33,19 @@ matrix:
     os: windows
 
 # command to run tests, e.g. python setup.py test
+before_install: |
+  if [ "$TRAVIS_OS_NAME" == "osx" ]; then
+    brew update
+    brew install openssl readline
+    brew outdated pyenv || brew upgrade pyenv
+    brew install pyenv-virtualenv
+    pyenv install $PYTHON
+    export PYENV_VERSION=$PYTHON
+    export PATH="/Users/travis/.pyenv/shims:${PATH}"
+    pyenv-virtualenv venv
+    source venv/bin/activate
+    python --version
+  fi
 install: 
   - pip install virtualenv
   - pip install codecov
