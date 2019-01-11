@@ -1,22 +1,17 @@
 language: python
+dist: xenial
 sudo: false
+python:	
+  - "2.7"	
+  - "3.5"	
+  - "3.6"	
+  - "3.7"
+
 env:
   - TRAVIS_PYLINT=false
 
 matrix:
   include:
-    - os: linux
-      dist: xenial
-      python: 2.7
-    - os: linux
-      dist: xenial
-      python: 3.5
-    - os: linux
-      dist: xenial
-      python: 3.6
-    - os: linux
-      dist: xenial
-      python: 3.7
     - os: windows
       language: sh
       python: 3.7
