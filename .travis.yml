@@ -30,7 +30,7 @@ install:
   - pip install codecov
 script: 
   - make env
-  - if [[ $TRAVIS_PYLINT == 'true' ]]; then make pylint; else make test; fi
+  - if [[ $TRAVIS_PYLINT != 'true' ]]; then make test; else make pylint; fi
 after_success:
   - codecov
 after_failure:
