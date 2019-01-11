@@ -15,6 +15,7 @@ matrix:
     - python: "3.6"
       env: TRAVIS_PYLINT=true
     - os : osx
+      python: "3.7"
 
 # command to run tests, e.g. python setup.py test
 install: 
