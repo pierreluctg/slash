@@ -22,18 +22,9 @@ matrix:
         - export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
         - python -m pip install --upgrade pip wheel
       script: 
-        - python -m pip install .[testing,doc]
-        - pytest --cov=slash --cov-report=html tests
-    - os: windows
-      language: sh
-      python: 2.7
-      before_install:
-        - choco install python2
-        - export PATH="/c/Python27:/c/Python27/Scripts:$PATH"
-        - python -m pip install --upgrade pip wheel
-      script: 
-        - python -m pip install .[testing,doc]
-        - pytest --cov=slash --cov-report=html tests
+        - python -m virtualenv .env
+        - .env/Scripts/pip.exe install -e .[testing,doc]
+        - .env/Scripts/py.test.exe --cov=slash --cov-report=html tests
 
 # command to run tests, e.g. python setup.py test
 install: 
