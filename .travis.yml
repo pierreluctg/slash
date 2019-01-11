@@ -14,7 +14,6 @@ matrix:
   include:
     - python: "3.6"
       env: TRAVIS_PYLINT=true
-  allow_failures:
     - os: windows
       language: sh
       python: 3.7
@@ -26,6 +25,8 @@ matrix:
         - python -m virtualenv .env
         - .env/Scripts/pip.exe install -e .[testing,doc]
         - .env/Scripts/py.test.exe --cov=slash --cov-report=html tests
+  allow_failures:
+    os: windows
 
 # command to run tests, e.g. python setup.py test
 install: 
