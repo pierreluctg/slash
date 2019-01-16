@@ -43,7 +43,7 @@ class TestCase(unittest.TestCase):
 
     def get_new_path(self):
         returned = tempfile.mkdtemp()
-        self.addCleanup(shutil.rmtree, returned, ignore_errors=True)
+        self.addCleanup(shutil.rmtree, returned)
         return returned
 
     _forge = None
