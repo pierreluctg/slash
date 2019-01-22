@@ -30,7 +30,7 @@ matrix:
         - .env/Scripts/pip.exe install -e .[testing,doc]
         - .env/Scripts/py.test.exe --cov=slash --cov-report=html tests
   allow_failures:
-    os: windows
+    - os: windows
 
 # command to run tests, e.g. python setup.py test
 before_install: |
